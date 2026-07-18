@@ -56,3 +56,11 @@
 - Added pool-level lifecycle and forwarded worker events.
 - Added queue metrics for status totals, ready and delayed jobs, active jobs, expired leases, and oldest queued time.
 - Added concurrency, duplicate-claim prevention, registration, and metrics tests.
+
+## 3.5.0 — Stage 1A.5
+
+- Added dependency-aware job scheduling.
+- Added idempotency keys for duplicate-safe enqueue operations.
+- Added a persistent dead-letter queue with one-time replay support.
+- Added dependency-failure reconciliation.
+- Extended queue metrics with blocked-job and dead-letter counts.

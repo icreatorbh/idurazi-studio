@@ -285,3 +285,98 @@ test('Queue metrics report status, readiness, delayed work, and expired leases',
   assert.equal(metrics.oldestQueuedAt, '2026-07-19T00:00:00.000Z');
   database.close();
 });
+
+test('idempotency keys deduplicate repeated enqueue requests', () => {
+  const database = createRuntimeDatabase();
+  const queue = new JobQueue(database);
+  const first = queue.enqueue('transcribe', { source: 'a.mov' }, { idempotencyKey: 'transcribe:a.mov' });
+  const second = queue.enqueue('transcribe', { source: 'changed.mov' }, { idempotencyKey: 'transcribe:a.mov' });
+
+  assert.equal(first.deduplicated, false);
+  assert.equal(second.deduplicated, true);
+  assert.equal(second.id, first.id);
+  assert.deepEqual(second.payload, { source: 'a.mov' });
+  assert.equal(queue.metrics().total, 1);
+  database.close();
+});
+
+test('dependent jobs wait until every prerequisite completes', async () => {
+  const database = createRuntimeDatabase();
+  const queue = new JobQueue(database);
+  const order = [];
+  const worker = new Worker(database, {
+    id: 'dependency-worker',
+    handlers: {
+      parent: async () => { order.push('parent'); },
+      child: async () => { order.push('child'); }
+    }
+  });
+
+  const parent = queue.enqueue('parent');
+  const child = queue.enqueue('child', {}, { dependsOn: [parent.id], priority: 100 });
+  assert.equal(queue.pending().map((job) => job.id).includes(child.id), false);
+  assert.deepEqual(queue.dependencies(child.id).map((job) => job.id), [parent.id]);
+
+  await worker.runOne();
+  await worker.runOne();
+  assert.deepEqual(order, ['parent', 'child']);
+  assert.equal(queue.get(child.id).status, JobStatus.COMPLETED);
+  database.close();
+});
+
+test('failed dependencies move blocked jobs into the dead-letter queue', async () => {
+  const database = createRuntimeDatabase();
+  const queue = new JobQueue(database);
+  const worker = new Worker(database, {
+    id: 'dependency-failure-worker',
+    retryDelayMs: 0,
+    handlers: { parent: async () => { throw new Error('parent failed'); } }
+  });
+
+  const parent = queue.enqueue('parent', {}, { maxAttempts: 1 });
+  const child = queue.enqueue('child', {}, { dependsOn: [parent.id] });
+  await worker.runOne();
+  assert.equal(queue.get(parent.id).status, JobStatus.FAILED);
+
+  assert.equal(queue.reconcileDependencies(), 1);
+  assert.equal(queue.get(child.id).status, JobStatus.FAILED);
+  assert.equal(queue.get(child.id).error.code, 'JOB_DEPENDENCY_FAILED');
+  const letters = queue.deadLetters();
+  assert.equal(letters.length, 2);
+  assert.deepEqual(new Set(letters.map((letter) => letter.reason)), new Set(['attempts_exhausted', 'dependency_failed']));
+  database.close();
+});
+
+test('exhausted jobs can be replayed once from the dead-letter queue', async () => {
+  const database = createRuntimeDatabase();
+  const queue = new JobQueue(database);
+  const worker = new Worker(database, {
+    retryDelayMs: 0,
+    handlers: { fragile: async () => { throw new Error('permanent'); } }
+  });
+  const original = queue.enqueue('fragile', { interviewId: 'INT-9' }, { maxAttempts: 1 });
+  await worker.runOne();
+
+  const letter = queue.deadLetters()[0];
+  assert.equal(letter.jobId, original.id);
+  const replay = queue.replayDeadLetter(letter.id, { type: 'repaired', maxAttempts: 2 });
+  assert.notEqual(replay.id, original.id);
+  assert.equal(replay.type, 'repaired');
+  assert.deepEqual(replay.payload, { interviewId: 'INT-9' });
+  assert.equal(queue.getDeadLetter(letter.id).replayJobId, replay.id);
+  assert.throws(() => queue.replayDeadLetter(letter.id), /already replayed/);
+  database.close();
+});
+
+test('queue metrics include blocked jobs and dead letters', () => {
+  const database = createRuntimeDatabase();
+  const queue = new JobQueue(database);
+  const parent = queue.enqueue('parent');
+  queue.enqueue('child', {}, { dependsOn: [parent.id] });
+  const metrics = queue.metrics();
+  assert.equal(metrics.blocked, 1);
+  assert.equal(metrics.ready, 1);
+  assert.equal(metrics.delayed, 0);
+  assert.equal(metrics.deadLetters, 0);
+  database.close();
+});

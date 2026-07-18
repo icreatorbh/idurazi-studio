@@ -8,6 +8,10 @@ const { WorkerPool } = require('./queue/WorkerPool');
 const { StructuredLogger, MemoryLogSink, LEVELS, normalizeError } = require('./observability/StructuredLogger');
 const { RuntimeAuditBridge, DEFAULT_EVENTS, severityFor } = require('./observability/RuntimeAuditBridge');
 const { RuntimeHealthReport } = require('./health/RuntimeHealthReport');
+const { SecretValue, REDACTED, redactSecrets } = require('./config/SecretValue');
+const { DEFAULTS, ConfigurationError, loadRuntimeConfig, publicRuntimeConfig, validateRawConfig } = require('./config/RuntimeConfig');
+const { StartupValidator, StartupValidationError, compareVersions } = require('./startup/StartupValidator');
+const { bootstrapRuntime } = require('./startup/RuntimeBootstrap');
 
 function createRuntimeDatabase(filename = ':memory:') {
   return new RuntimeDatabase(filename).open().migrate();
@@ -22,6 +26,18 @@ module.exports = {
   WorkerPool,
   RuntimeAuditBridge,
   RuntimeHealthReport,
+  SecretValue,
+  REDACTED,
+  redactSecrets,
+  DEFAULTS,
+  ConfigurationError,
+  loadRuntimeConfig,
+  publicRuntimeConfig,
+  validateRawConfig,
+  StartupValidator,
+  StartupValidationError,
+  compareVersions,
+  bootstrapRuntime,
   StructuredLogger,
   MemoryLogSink,
   LEVELS,

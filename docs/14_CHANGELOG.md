@@ -1,3 +1,12 @@
+# Changelog
+
+## 3.7.0 — Runtime Configuration and Startup Validation
+
+- Added validated runtime configuration with defaults, JSON files, environment variables, and overrides.
+- Added a redacted secrets boundary for provider credentials.
+- Added startup validation for Node.js, filesystem access, SQLite migrations, and integrity.
+- Added a single runtime bootstrap and graceful close boundary.
+
 # 2.5.0
 - Person Entity Resolution للأسماء الكاملة والمختصرة والبديلة.
 - Mention records تحفظ النص كما قيل.

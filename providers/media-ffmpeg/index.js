@@ -1,0 +1,3 @@
+const {spawn}=require('node:child_process');
+class FfmpegProvider{constructor({ffprobe='ffprobe'}={}){this.id='ffmpeg';this.version='2.2.0';this.capabilities=['probe'];this.ffprobe=ffprobe;}async health(){return{ok:true,provider:this.id,binary:this.ffprobe};}async probe(filePath){return new Promise((resolve,reject)=>{const p=spawn(this.ffprobe,['-v','quiet','-print_format','json','-show_format','-show_streams',filePath]);let out='',err='';p.stdout.on('data',d=>out+=d);p.stderr.on('data',d=>err+=d);p.on('error',reject);p.on('close',c=>c===0?resolve(JSON.parse(out)):reject(new Error(err||`ffprobe exited ${c}`)));});}}
+module.exports={FfmpegProvider};

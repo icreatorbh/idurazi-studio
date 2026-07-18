@@ -1,0 +1,25 @@
+{
+  "name": "@idurazi/local-service",
+  "version": "2.5.0",
+  "private": true,
+  "description": "Local Node.js control layer between iDurazi Premiere UXP and Ollama",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "check": "node scripts/check.js",
+    "setup-whisper": "python -m pip install -r python/requirements.txt"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "@idurazi/provider-container": "*",
+    "@idurazi/provider-ai-ollama": "*",
+    "@idurazi/provider-transcription-faster-whisper": "*",
+    "@idurazi/provider-storage-json": "*",
+    "@idurazi/provider-media-ffmpeg": "*",
+    "@idurazi/archive-repository": "*",
+    "@idurazi/interview-import-pipeline": "*",
+    "@idurazi/person-entity-resolution": "*"
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "people": [
+    {
+      "id": "person_mohammed_alshahab",
+      "nameAr": "محمد حسن علي الشهاب",
+      "nameEn": "Mohammed Hassan Ali Al-Shahab",
+      "titleAr": "معلم متقاعد",
+      "titleEn": "Retired Teacher",
+      "program": "وجوه درازية",
+      "templateCode": "LT01",
+      "aliases": [
+        "أبو رياض",
+        "الأستاذ محمد الشهاب"
+      ],
+      "notes": "سجل تجريبي يمكن تعديله أو حذفه.",
+      "createdAt": "2026-07-18T00:00:00.000Z",
+      "updatedAt": "2026-07-18T00:00:00.000Z"
+    }
+  ]
+}

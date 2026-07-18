@@ -1,0 +1,14 @@
+{
+  "host": "127.0.0.1",
+  "port": 37841,
+  "ollamaUrl": "http://127.0.0.1:11434",
+  "defaultModel": "qwen3:8b",
+  "temperature": 0.2,
+  "maxSuggestions": 20,
+  "requestTimeoutMs": 180000,
+  "whisperPython": "python",
+  "whisperModel": "small",
+  "whisperDevice": "auto",
+  "whisperComputeType": "auto",
+  "transcriptionOutputDir": "outputs"
+}

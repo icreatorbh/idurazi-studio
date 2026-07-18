@@ -1,0 +1,10 @@
+{
+  "id":"interview-import","name":"Import Oral History Interview","version":"1.0.0",
+  "steps":[
+    {"id":"transcript","tool":"transcribe_media"},
+    {"id":"chapters","tool":"generate_chapters"},
+    {"id":"people","tool":"detect_people"},
+    {"id":"lowerThirds","tool":"suggest_lower_thirds"},
+    {"id":"apply","tool":"apply_premiere_changes"}
+  ]
+}

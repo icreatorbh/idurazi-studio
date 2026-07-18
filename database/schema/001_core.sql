@@ -1,0 +1,12 @@
+PRAGMA foreign_keys = ON;
+CREATE TABLE IF NOT EXISTS people (id TEXT PRIMARY KEY, arabic_name TEXT NOT NULL, english_name TEXT, title TEXT, biography TEXT, created_at TEXT DEFAULT CURRENT_TIMESTAMP);
+CREATE TABLE IF NOT EXISTS programs (id TEXT PRIMARY KEY, name_ar TEXT NOT NULL, name_en TEXT, description TEXT);
+CREATE TABLE IF NOT EXISTS episodes (id TEXT PRIMARY KEY, program_id TEXT REFERENCES programs(id), title TEXT NOT NULL, recorded_at TEXT, published_at TEXT, status TEXT DEFAULT 'draft');
+CREATE TABLE IF NOT EXISTS media_assets (id TEXT PRIMARY KEY, episode_id TEXT REFERENCES episodes(id), path TEXT NOT NULL, media_type TEXT, duration_ms INTEGER, checksum TEXT);
+CREATE TABLE IF NOT EXISTS transcripts (id TEXT PRIMARY KEY, media_asset_id TEXT REFERENCES media_assets(id), language TEXT, text TEXT, engine TEXT, model TEXT, created_at TEXT DEFAULT CURRENT_TIMESTAMP);
+CREATE TABLE IF NOT EXISTS transcript_segments (id TEXT PRIMARY KEY, transcript_id TEXT REFERENCES transcripts(id), speaker_person_id TEXT REFERENCES people(id), start_ms INTEGER NOT NULL, end_ms INTEGER NOT NULL, text TEXT NOT NULL, confidence REAL);
+CREATE TABLE IF NOT EXISTS topics (id TEXT PRIMARY KEY, label_ar TEXT NOT NULL, label_en TEXT);
+CREATE TABLE IF NOT EXISTS mentions (id TEXT PRIMARY KEY, transcript_segment_id TEXT REFERENCES transcript_segments(id), entity_type TEXT NOT NULL, entity_id TEXT, surface_text TEXT NOT NULL, confidence REAL);
+CREATE TABLE IF NOT EXISTS relationships (id TEXT PRIMARY KEY, subject_type TEXT NOT NULL, subject_id TEXT NOT NULL, predicate TEXT NOT NULL, object_type TEXT NOT NULL, object_id TEXT NOT NULL, source_segment_id TEXT REFERENCES transcript_segments(id), confidence REAL);
+CREATE TABLE IF NOT EXISTS lower_third_profiles (id TEXT PRIMARY KEY, person_id TEXT REFERENCES people(id), program_id TEXT REFERENCES programs(id), display_name TEXT NOT NULL, display_title TEXT, mogrt_template TEXT, is_default INTEGER DEFAULT 0);
+CREATE TABLE IF NOT EXISTS workflow_runs (id TEXT PRIMARY KEY, workflow_id TEXT NOT NULL, status TEXT NOT NULL, input_json TEXT, output_json TEXT, started_at TEXT DEFAULT CURRENT_TIMESTAMP, finished_at TEXT);

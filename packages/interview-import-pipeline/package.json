@@ -1,0 +1,9 @@
+{
+  "name": "@idurazi/interview-import-pipeline",
+  "version": "2.5.0",
+  "main": "index.js",
+  "dependencies": {
+    "@idurazi/person-entity-resolution": "*",
+    "@idurazi/archive-repository": "*"
+  }
+}

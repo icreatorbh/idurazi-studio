@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <title>iDurazi Premiere Copilot</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div id="app">
+  <header class="app-header">
+    <div><strong>iDurazi Premiere Copilot</strong><small>Local AI · Whisper · Chapters · Timeline · Markers</small></div>
+    <span id="service-dot" class="dot offline" title="حالة الخدمة"></span>
+  </header>
+
+  <nav class="tabs">
+    <button class="tab-btn active" data-tab="copilot">Copilot</button>
+    <button class="tab-btn" data-tab="project">المشروع</button>
+    <button class="tab-btn" data-tab="tasks">المعاينة</button>
+    <button class="tab-btn" data-tab="timeline">Timeline</button>
+    <button class="tab-btn" data-tab="history">التراجع</button>
+    <button class="tab-btn" data-tab="transcribe">التفريغ</button>
+    <button class="tab-btn" data-tab="people">الأشخاص</button>
+    <button class="tab-btn" data-tab="identity">مراجعة الهوية</button>
+    <button class="tab-btn" data-tab="archive">الأرشيف</button>
+    <button class="tab-btn" data-tab="import">استيراد مقابلة</button>
+    <button class="tab-btn" data-tab="lowerthirds">Lower Thirds</button>
+    <button class="tab-btn" data-tab="graphics">الجرافيكس</button>
+    <button class="tab-btn" data-tab="settings">الإعدادات</button>
+  </nav>
+
+  <main>
+    <section id="tab-copilot" class="tab-content active">
+      <div class="section-title"><h2>مساعد المونتاج</h2><button id="new-session" class="icon-btn">جلسة جديدة</button></div>
+      <div id="chat-log" class="chat-log">
+        <div class="message assistant">اكتب ما تريد تنفيذه. سأحوّله إلى خطة قابلة للمراجعة قبل لمس المشروع.</div>
+      </div>
+      <div class="prompt-box">
+        <textarea id="copilot-prompt" rows="4" placeholder="مثال: اقرأ الترانسكريبت واقترح ماركر عند بداية كل موضوع، ثم جهّز Lower Third للضيف."></textarea>
+        <div class="prompt-actions">
+          <label class="check"><input id="include-project-context" type="checkbox" checked> تضمين سياق المشروع</label>
+          <button id="send-copilot" class="primary-btn compact">إنشاء خطة</button>
+        </div>
+      </div>
+      <div id="plan-preview" class="panel hidden"></div>
+    </section>
+
+    <section id="tab-project" class="tab-content">
+      <div class="section-title"><h2>سياق Premiere الحالي</h2><button id="refresh-project" class="secondary-btn compact">تحديث</button></div>
+      <div id="project-status" class="status-grid"></div>
+      <pre id="project-json" class="code-box">لم تتم قراءة المشروع بعد.</pre>
+    </section>
+
+    <section id="tab-tasks" class="tab-content">
+      <div class="section-title"><h2>قائمة المهام</h2><button id="clear-history" class="danger-btn compact">مسح السجل</button></div>
+      <div class="filter-row">
+        <button class="filter-btn active" data-filter="all">الكل</button>
+        <button class="filter-btn" data-filter="pending">بانتظار الموافقة</button>
+        <button class="filter-btn" data-filter="done">مكتملة</button>
+        <button class="filter-btn" data-filter="failed">فشلت</button>
+      </div>
+      <div id="tasks-list" class="tasks-list"></div>
+    </section>
+
+    <section id="tab-timeline" class="tab-content">
+      <div class="section-title"><h2>Timeline Reader</h2><button id="read-timeline" class="secondary-btn compact">قراءة Timeline</button></div>
+      <div id="timeline-summary" class="status-grid"></div>
+      <pre id="timeline-json" class="code-box">لم تتم قراءة الـTimeline بعد.</pre>
+      <div class="panel">
+        <h3>إنشاء Markers يدويًا</h3>
+        <p class="hint">سطر لكل Marker: الوقت | الاسم | الملاحظة. مثال: 00:01:20 | بداية الطفولة | انتقال إلى ذكريات المدرسة</p>
+        <textarea id="manual-markers" rows="7" placeholder="00:00:10 | افتتاحية | بداية الحلقة
+00:03:25 | الطفولة | حديث الضيف عن البيت القديم"></textarea>
+        <div class="prompt-actions"><label>لون Marker <input id="marker-color" type="number" min="0" max="7" value="0"></label><button id="preview-markers" class="primary-btn compact">إضافة إلى المعاينة</button></div>
+      </div>
+    </section>
+
+    <section id="tab-history" class="tab-content">
+      <div class="section-title"><h2>سجل التنفيذ والتراجع</h2><button id="undo-last" class="danger-btn compact">تراجع عن آخر عملية</button></div>
+      <p class="hint">التراجع الفعلي متاح للـMarkers المنشأة في الجلسة الحالية. العمليات الأخرى تُسجّل مع حالة إمكانية التراجع.</p>
+      <div id="undo-list" class="tasks-list"></div>
+    </section>
+
+    <section id="tab-transcribe" class="tab-content">
+      <h2>التفريغ والتحليل</h2>
+      <p class="hint">التفريغ المحلي يستخدم faster-whisper على جهازك، ثم يحلل Ollama النص لإنشاء الفصول وMarkers.</p>
+      <button id="pick-audio-file" class="secondary-btn">اختيار ملف صوت/فيديو</button>
+      <p id="picked-file-name" class="file-name"></p>
+      <div class="inline-settings"><label>اللغة <select id="whisper-language"><option value="auto">تلقائي</option><option value="ar">العربية</option><option value="en">English</option></select></label><label>النموذج <select id="whisper-model"><option value="tiny">tiny</option><option value="base">base</option><option value="small" selected>small</option><option value="medium">medium</option><option value="large-v3">large-v3</option></select></label></div>
+      <button id="run-transcribe" class="primary-btn" disabled>بدء التفريغ المحلي</button>
+      <h3>أو الصق الترانسكريبت</h3>
+      <textarea id="manual-transcript" rows="10" placeholder="الصق النص، ويفضل تضمين التوقيتات مثل [00:12]..."></textarea>
+      <button id="use-manual-transcript" class="secondary-btn">اعتماد النص</button>
+      <button id="generate-chapters" class="primary-btn" disabled>إنشاء الفصول الذكية</button>
+      <button id="run-analyze" class="secondary-btn" disabled>اقتراح Lower Thirds</button>
+      <div id="transcribe-progress" class="progress hidden"><div class="spinner"></div><span>جاري التفريغ...</span></div>
+      <div id="analyze-progress" class="progress hidden"><div class="spinner"></div><span>جاري التحليل...</span></div>
+      <div id="transcript-output" class="output-box hidden"><h3>النص</h3><div id="transcript-meta" class="hint"></div><div id="transcript-files" class="hint"></div><div id="transcript-text"></div></div>
+      <div id="chapters-output" class="output-box hidden"><h3>الفصول المقترحة</h3><div id="chapters-list"></div><button id="preview-chapters" class="primary-btn compact">إرسال الفصول إلى المعاينة كـ Markers</button></div>
+      <div id="analyze-output" class="output-box hidden"><h3>الاقتراحات</h3><div id="suggestions-list"></div></div>
+    </section>
+
+
+    <section id="tab-people" class="tab-content">
+      <div class="section-title"><h2>People Repository</h2><button id="refresh-people" class="secondary-btn compact">تحديث</button></div>
+      <div class="panel">
+        <input type="hidden" id="person-id">
+        <label>الاسم بالعربية</label><input id="person-name-ar" type="text" placeholder="محمد حسن علي الشهاب">
+        <label>الصفة بالعربية</label><input id="person-title-ar" type="text" placeholder="معلم متقاعد">
+        <label>الاسم بالإنجليزية</label><input id="person-name-en" type="text">
+        <label>الصفة بالإنجليزية</label><input id="person-title-en" type="text">
+        <label>البرنامج</label><input id="person-program" type="text" value="وجوه درازية">
+        <label>قالب MOGRT</label><input id="person-template" type="text" value="LT01">
+        <label>الأسماء البديلة — افصل بفاصلة</label><input id="person-aliases" type="text">
+        <label>ملاحظات</label><textarea id="person-notes" rows="3"></textarea>
+        <div class="prompt-actions"><button id="save-person" class="primary-btn compact">حفظ الشخص</button><button id="clear-person-form" class="secondary-btn compact">تفريغ النموذج</button></div>
+      </div>
+      <div id="people-list" class="tasks-list"></div>
+    </section>
+
+
+    <section id="tab-identity" class="tab-content">
+      <div class="section-title"><h2>Identity Review</h2><button id="refresh-identity" class="secondary-btn compact">تحديث</button></div>
+      <p class="hint">يربط صيغ الاسم المختلفة بالشخص نفسه، ويحفظ النص كما قيل حرفيًا. لا يتم الدمج غير الواضح تلقائيًا.</p>
+      <div class="panel">
+        <label>الإشارة الاسمية</label><input id="identity-mention" type="text" placeholder="سلمان، سلمان عبد الله، سلمان عيد">
+        <label>السياق المحيط</label><textarea id="identity-context" rows="4" placeholder="كان مسؤول الفريق في النادي... ثم قال سلمان..."></textarea>
+        <button id="resolve-identity" class="primary-btn compact">تحليل الإشارة</button>
+      </div>
+      <div id="identity-results" class="tasks-list"></div>
+    </section>
+
+    <section id="tab-lowerthirds" class="tab-content">
+      <div class="section-title"><h2>Smart Lower Thirds</h2><button id="generate-smart-lt" class="primary-btn compact">تحليل الترانسكريبت</button></div>
+      <p class="hint">يطابق Ollama الترانسكريبت مع الأشخاص المسجلين فقط. لا يتم إدراج أي قالب قبل المراجعة.</p>
+      <div id="smart-lt-list" class="tasks-list"></div>
+      <button id="preview-all-smart-lt" class="primary-btn" disabled>إرسال جميع الاقتراحات إلى المعاينة</button>
+    </section>
+
+
+    <section id="tab-archive" class="tab-content">
+      <div class="section-title"><h2>Archive Dashboard</h2><button id="refresh-archive" class="secondary-btn compact">تحديث</button></div>
+      <div id="archive-stats" class="status-grid"></div>
+      <div class="panel"><label>البحث الموحّد</label><div class="prompt-actions"><input id="archive-query" type="text" placeholder="بابكو، التعليم، اسم الضيف..."><button id="archive-search" class="primary-btn compact">بحث</button></div></div>
+      <div class="inline-settings"><label>نوع السجل <select id="archive-type"><option value="episodes">الحلقات</option><option value="people">الأشخاص</option><option value="transcripts">النصوص</option><option value="topics">الموضوعات</option><option value="quotes">الاقتباسات</option><option value="assets">الأصول</option><option value="imports">عمليات الاستيراد</option></select></label><button id="archive-list-type" class="secondary-btn compact">عرض النوع</button></div>
+      <div id="archive-results" class="tasks-list"></div>
+    </section>
+
+    <section id="tab-import" class="tab-content">
+      <h2>Interview Import Pipeline</h2><p class="hint">ينشئ الحلقة والنص والأشخاص والموضوعات والاقتباسات والعلاقات في عملية واحدة.</p>
+      <label>عنوان الحلقة</label><input id="import-title" type="text" placeholder="حكاية معلم — محمد الشهاب">
+      <div class="inline-settings"><label>البرنامج <input id="import-program" type="text" value="وجوه درازية"></label><label>رقم الحلقة <input id="import-number" type="number" min="1"></label></div>
+      <label>الضيوف — اسم في كل سطر</label><textarea id="import-guests" rows="3" placeholder="محمد حسن علي الشهاب"></textarea>
+      <label>الموضوعات الإضافية — افصل بفاصلة</label><input id="import-topics" type="text" placeholder="التعليم، مدرسة الدراز">
+      <label>ملخص الحلقة</label><textarea id="import-summary" rows="3"></textarea>
+      <label>الترانسكريبت</label><textarea id="import-transcript" rows="12" placeholder="الصق النص الكامل هنا، أو استخدم النص الذي تم تفريغه في تبويب التفريغ."></textarea>
+      <div class="prompt-actions"><button id="copy-current-transcript" class="secondary-btn compact">استخدام الترانسكريبت الحالي</button><button id="run-interview-import" class="primary-btn compact">استيراد المقابلة</button></div>
+      <div id="import-result" class="output-box hidden"></div>
+    </section>
+
+    <section id="tab-graphics" class="tab-content">
+      <h2>iDurazi Broadcast Pack</h2>
+      <p class="hint">اختر مجلد LT01–LT12. الإدراج يتم فقط بعد ضغط زر التنفيذ على الاقتراح.</p>
+      <button id="pick-mogrt-folder" class="secondary-btn">اختيار مجلد MOGRT</button>
+      <p id="mogrt-folder-name" class="file-name"></p>
+      <label>مسار الفيديو المستهدف</label><input type="number" id="target-track" min="1" max="99" value="2">
+      <button id="scan-mogrts" class="secondary-btn">فحص القوالب</button>
+      <div id="mogrt-list" class="mogrt-list"></div>
+      <h3>قوالب النظام</h3><div id="idurazi-templates-list" class="mogrt-list"></div>
+    </section>
+
+    <section id="tab-settings" class="tab-content">
+      <h2>إعدادات Local AI Service</h2>
+      <label>عنوان خدمة Node.js</label><input type="text" id="ollama-url" placeholder="http://127.0.0.1:37841">
+      <label>نموذج Ollama</label><input type="text" id="ollama-model" placeholder="qwen3:8b">
+      <button id="test-ollama" class="secondary-btn">اختبار الخدمة وOllama</button>
+      <p id="ollama-status" class="status-msg"></p>
+      <hr>
+      <p class="hint">لا يحتاج faster-whisper إلى مفتاح API. يبقى الحقل التالي للتوافق مع التفريغ السحابي القديم فقط.</p><label>مفتاح OpenAI Whisper — اختياري</label><input type="password" id="whisper-key" placeholder="sk-...">
+      <label class="check"><input id="safe-mode" type="checkbox" checked> الوضع الآمن: طلب موافقة قبل أي تعديل</label>
+      <button id="save-keys" class="primary-btn">حفظ الإعدادات</button>
+      <p id="save-status" class="status-msg"></p>
+    </section>
+  </main>
+</div>
+<script src="js/api-keys.js"></script>
+<script src="js/premiere-bridge.js"></script>
+<script src="js/ollama-client.js"></script>
+<script src="js/copilot-client.js"></script>
+<script src="js/task-store.js"></script>
+<script src="js/undo-store.js"></script>
+<script src="js/whisper-client.js"></script>
+<script src="js/local-transcription-client.js"></script>
+<script src="js/people-client.js"></script>
+<script src="js/archive-client.js"></script>
+<script src="js/identity-client.js"></script>
+<script src="js/main.js"></script>
+<script src="js/idurazi-templates-ui.js"></script>
+</body>
+</html>

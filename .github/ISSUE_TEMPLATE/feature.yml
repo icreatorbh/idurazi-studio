@@ -1,0 +1,23 @@
+name: Feature proposal
+description: Propose a governed iDurazi Studio feature
+title: "[FEATURE] "
+labels: [enhancement]
+body:
+  - type: input
+    id: feature_id
+    attributes: {label: Feature ID}
+    validations: {required: true}
+  - type: dropdown
+    id: stage
+    attributes:
+      label: Stage
+      options: ["1A Core", "1B Editorial", "1C Premiere", "1D Reliability", "2 Finishing", "3 Publishing", "4 Archive", "5 Institution"]
+    validations: {required: true}
+  - type: textarea
+    id: outcome
+    attributes: {label: Outcome and acceptance criteria}
+    validations: {required: true}
+  - type: textarea
+    id: architecture
+    attributes: {label: Engine, entities, dependencies, tests, and recovery}
+    validations: {required: true}

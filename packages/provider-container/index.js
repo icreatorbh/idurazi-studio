@@ -1,0 +1,3 @@
+const {assertProvider,contracts}=require('@idurazi/provider-core');
+class ProviderContainer{ constructor(){this.providers=new Map();} register(token,provider){ if(contracts[token]) assertProvider(provider,contracts[token]); this.providers.set(token,provider); return this;} resolve(token){ if(!this.providers.has(token)) throw new Error(`Provider not registered: ${token}`); return this.providers.get(token);} has(token){return this.providers.has(token);} describe(){return [...this.providers.entries()].map(([token,p])=>({token,id:p.id,version:p.version||'unknown',capabilities:p.capabilities||[]}));} }
+module.exports={ProviderContainer};

@@ -1,0 +1,1 @@
+{"name":"@idurazi/provider-ai-ollama","version":"2.2.0","main":"index.js","dependencies":{"@idurazi/provider-core":"*"}}

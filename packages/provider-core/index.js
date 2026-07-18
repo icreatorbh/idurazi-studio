@@ -1,0 +1,4 @@
+class ProviderError extends Error { constructor(message,{code='PROVIDER_ERROR',provider,cause}={}){ super(message); this.name='ProviderError'; this.code=code; this.provider=provider; this.cause=cause; } }
+function assertProvider(provider, contract){ if(!provider) throw new ProviderError(`Missing provider: ${contract.name}`); for(const method of contract.methods){ if(typeof provider[method] !== 'function') throw new ProviderError(`Provider ${provider.id||'unknown'} does not implement ${method}`,{code:'INVALID_PROVIDER',provider:provider.id}); } return provider; }
+const contracts={ ai:{name:'AIProvider',methods:['health','listModels','chat']}, transcription:{name:'TranscriptionProvider',methods:['health','transcribe']}, storage:{name:'StorageProvider',methods:['health','readCollection','writeCollection']}, media:{name:'MediaProvider',methods:['health','probe']} };
+module.exports={ProviderError,assertProvider,contracts};

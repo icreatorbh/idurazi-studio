@@ -1,0 +1,1 @@
+{"name":"@idurazi/cli","version":"2.0.0","private":true,"type":"commonjs","main":"index.js","dependencies":{"@idurazi/tool-registry":"2.0.0","@idurazi/workflow-engine":"2.0.0"}}

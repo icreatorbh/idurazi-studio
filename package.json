@@ -1,6 +1,6 @@
 {
   "name": "idurazi-studio",
-  "version": "3.0.0",
+  "version": "3.1.0",
   "private": true,
   "description": "Local-first editorial intelligence platform for documentary production",
   "workspaces": [
@@ -16,6 +16,6 @@
     "workflow:interview": "node apps/cli/index.js workflow interview-import"
   },
   "engines": {
-    "node": ">=18"
+    "node": ">=22.5"
   }
 }

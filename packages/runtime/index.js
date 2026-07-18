@@ -12,6 +12,9 @@ const { SecretValue, REDACTED, redactSecrets } = require('./config/SecretValue')
 const { DEFAULTS, ConfigurationError, loadRuntimeConfig, publicRuntimeConfig, validateRawConfig } = require('./config/RuntimeConfig');
 const { StartupValidator, StartupValidationError, compareVersions } = require('./startup/StartupValidator');
 const { bootstrapRuntime } = require('./startup/RuntimeBootstrap');
+const { RuntimeService, RuntimeState } = require('./service/RuntimeService');
+const { installShutdownHooks } = require('./service/ShutdownHooks');
+const { RuntimeLock, RuntimeLockError, defaultProcessAlive, defaultRuntimePidFile } = require('./service/RuntimeLock');
 
 function createRuntimeDatabase(filename = ':memory:') {
   return new RuntimeDatabase(filename).open().migrate();
@@ -38,6 +41,13 @@ module.exports = {
   StartupValidationError,
   compareVersions,
   bootstrapRuntime,
+  RuntimeService,
+  RuntimeState,
+  installShutdownHooks,
+  RuntimeLock,
+  RuntimeLockError,
+  defaultProcessAlive,
+  defaultRuntimePidFile,
   StructuredLogger,
   MemoryLogSink,
   LEVELS,

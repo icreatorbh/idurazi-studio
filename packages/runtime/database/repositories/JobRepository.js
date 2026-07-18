@@ -109,6 +109,25 @@ class JobRepository {
     });
   }
 
+  renewLease(id, workerId, { leaseMs = 30_000 } = {}) {
+    if (!workerId) throw new TypeError('workerId is required');
+    if (!Number.isFinite(leaseMs) || leaseMs <= 0) {
+      throw new RangeError('leaseMs must be a positive number');
+    }
+
+    const now = this.clock();
+    const nowIso = now.toISOString();
+    const leaseExpiresAt = new Date(now.getTime() + leaseMs).toISOString();
+    const result = this.db.prepare(`
+      UPDATE jobs
+      SET lease_expires_at = ?, updated_at = ?
+      WHERE id = ? AND status = ? AND lease_owner = ?
+    `).run(leaseExpiresAt, nowIso, id, JobStatus.RUNNING, workerId);
+
+    if (Number(result.changes) !== 1) return null;
+    return this.findById(id);
+  }
+
   complete(id) {
     return this.#transition(id, JobStatus.COMPLETED, { completed: true });
   }

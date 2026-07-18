@@ -40,3 +40,11 @@
 - Added event-driven `Worker` engine with handler registration.
 - Added polling execution, retry handling, missing-handler failure, and startup recovery.
 - Added end-to-end queue and worker tests.
+
+## 3.3.0 — Stage 1A Heartbeats and Graceful Shutdown
+
+- Added lease renewal through automatic worker heartbeats.
+- Added a manual heartbeat function and abort signal to handler context.
+- Added lease ownership-loss detection for safer recovery behavior.
+- Added graceful worker shutdown with optional timeout-driven cooperative abort.
+- Added tests for long-running jobs, heartbeat renewal, graceful drain, and shutdown timeout.

@@ -186,3 +186,102 @@ test('Worker can abort a cooperative handler after shutdown timeout', async () =
   assert.equal(queue.get(job.id).error.code, 'WORKER_SHUTDOWN_TIMEOUT');
   database.close();
 });
+
+test('WorkerPool processes jobs concurrently without duplicate claims', async () => {
+  const { WorkerPool } = require('../packages/runtime');
+  const database = createRuntimeDatabase();
+  const queue = new JobQueue(database);
+  const active = new Set();
+  let peakConcurrency = 0;
+  const processed = [];
+
+  const pool = new WorkerPool(database, {
+    id: 'pool-concurrency',
+    concurrency: 3,
+    workerOptions: { pollIntervalMs: 5, leaseMs: 500, heartbeatIntervalMs: 100 },
+    handlers: {
+      parallel: async (payload, { job }) => {
+        active.add(job.id);
+        peakConcurrency = Math.max(peakConcurrency, active.size);
+        await new Promise((resolve) => setTimeout(resolve, 35));
+        processed.push(payload.index);
+        active.delete(job.id);
+      }
+    }
+  });
+
+  const jobs = Array.from({ length: 6 }, (_, index) => queue.enqueue('parallel', { index }));
+  const finished = new Promise((resolve) => {
+    let count = 0;
+    pool.on('completed', () => {
+      count += 1;
+      if (count === jobs.length) resolve();
+    });
+  });
+
+  pool.start();
+  await finished;
+  const stopped = await pool.stop();
+
+  assert.equal(stopped.graceful, true);
+  assert.equal(peakConcurrency, 3);
+  assert.deepEqual(processed.toSorted((a, b) => a - b), [0, 1, 2, 3, 4, 5]);
+  assert.equal(new Set(processed).size, jobs.length);
+  for (const job of jobs) assert.equal(queue.get(job.id).status, JobStatus.COMPLETED);
+  database.close();
+});
+
+test('WorkerPool validates concurrency and shares late handler registrations', async () => {
+  const { WorkerPool } = require('../packages/runtime');
+  const database = createRuntimeDatabase();
+  assert.throws(() => new WorkerPool(database, { concurrency: 0 }), /positive integer/);
+
+  const queue = new JobQueue(database);
+  const pool = new WorkerPool(database, { concurrency: 2 });
+  let calls = 0;
+  pool.register('late', async () => { calls += 1; });
+  queue.enqueue('late');
+  queue.enqueue('late');
+  await pool.runOneBatch();
+
+  assert.equal(calls, 2);
+  database.close();
+});
+
+test('Queue metrics report status, readiness, delayed work, and expired leases', () => {
+  const database = createRuntimeDatabase();
+  let current = new Date('2026-07-19T00:00:00.000Z');
+  const clock = () => new Date(current);
+  const repository = new (require('../packages/runtime').JobRepository)(database, { clock });
+  const queue = new JobQueue(database, { repository });
+
+  const ready = queue.enqueue('ready');
+  queue.enqueue('delayed', {}, { availableAt: '2026-07-19T01:00:00.000Z' });
+  const running = repository.claimNext('metrics-worker', { leaseMs: 1_000 });
+  assert.equal(running.id, ready.id);
+  queue.enqueue('completed');
+  const completed = repository.claimNext('metrics-worker-2', { leaseMs: 1_000 });
+  repository.complete(completed.id);
+  queue.enqueue('failed', {}, { maxAttempts: 1 });
+  const failed = repository.claimNext('metrics-worker-3', { leaseMs: 1_000 });
+  repository.fail(failed.id, new Error('final'));
+  const cancelled = queue.enqueue('cancelled');
+  queue.cancel(cancelled.id);
+
+  current = new Date('2026-07-19T00:00:02.000Z');
+  const metrics = queue.metrics();
+  assert.equal(metrics.total, 5);
+  assert.deepEqual(metrics.counts, {
+    queued: 1,
+    running: 1,
+    completed: 1,
+    failed: 1,
+    cancelled: 1
+  });
+  assert.equal(metrics.ready, 0);
+  assert.equal(metrics.delayed, 1);
+  assert.equal(metrics.active, 1);
+  assert.equal(metrics.expiredLeases, 1);
+  assert.equal(metrics.oldestQueuedAt, '2026-07-19T00:00:00.000Z');
+  database.close();
+});

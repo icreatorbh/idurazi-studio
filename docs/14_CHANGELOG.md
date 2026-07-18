@@ -48,3 +48,11 @@
 - Added lease ownership-loss detection for safer recovery behavior.
 - Added graceful worker shutdown with optional timeout-driven cooperative abort.
 - Added tests for long-running jobs, heartbeat renewal, graceful drain, and shutdown timeout.
+
+## 3.4.0 — Stage 1A.4 Worker Pool and Queue Metrics
+
+- Added configurable `WorkerPool` concurrency.
+- Added coordinated recovery before pool startup.
+- Added pool-level lifecycle and forwarded worker events.
+- Added queue metrics for status totals, ready and delayed jobs, active jobs, expired leases, and oldest queued time.
+- Added concurrency, duplicate-claim prevention, registration, and metrics tests.

@@ -39,6 +39,10 @@ class JobQueue extends EventEmitter {
     if (count > 0) this.emit('recovered', { count });
     return count;
   }
+
+  metrics(options) {
+    return this.repository.metrics(options);
+  }
 }
 
 module.exports = { JobQueue };

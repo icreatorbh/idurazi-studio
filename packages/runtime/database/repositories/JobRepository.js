@@ -177,6 +177,53 @@ class JobRepository {
     return Number(result.changes);
   }
 
+  metrics({ now = this.clock() } = {}) {
+    const nowIso = now.toISOString();
+    const rows = this.db.prepare(`
+      SELECT status, COUNT(*) AS count
+      FROM jobs
+      GROUP BY status
+    `).all();
+
+    const counts = {
+      queued: 0,
+      running: 0,
+      completed: 0,
+      failed: 0,
+      cancelled: 0
+    };
+    for (const row of rows) counts[row.status] = Number(row.count);
+
+    const ready = Number(this.db.prepare(`
+      SELECT COUNT(*) AS count FROM jobs
+      WHERE status = ? AND available_at <= ?
+    `).get(JobStatus.QUEUED, nowIso).count);
+
+    const delayed = counts.queued - ready;
+    const expiredLeases = Number(this.db.prepare(`
+      SELECT COUNT(*) AS count FROM jobs
+      WHERE status = ? AND lease_expires_at IS NOT NULL AND lease_expires_at <= ?
+    `).get(JobStatus.RUNNING, nowIso).count);
+
+    const oldestQueued = this.db.prepare(`
+      SELECT created_at FROM jobs
+      WHERE status = ?
+      ORDER BY created_at ASC
+      LIMIT 1
+    `).get(JobStatus.QUEUED);
+
+    return {
+      total: Object.values(counts).reduce((sum, value) => sum + value, 0),
+      counts,
+      ready,
+      delayed,
+      active: counts.running,
+      expiredLeases,
+      oldestQueuedAt: oldestQueued?.created_at ?? null,
+      capturedAt: nowIso
+    };
+  }
+
   delete(id) {
     return Number(this.db.prepare('DELETE FROM jobs WHERE id = ?').run(id).changes) === 1;
   }

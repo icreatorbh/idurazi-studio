@@ -33,3 +33,10 @@
 - Added entity listing and relationship navigation.
 - Added topic detection, conservative quote extraction, and duplicate reuse.
 - Added import pipeline tests and documentation.
+
+## 3.2.0 — Stage 1A Job Queue and Worker Engine
+
+- Added persistent `JobQueue` service over the SQLite job repository.
+- Added event-driven `Worker` engine with handler registration.
+- Added polling execution, retry handling, missing-handler failure, and startup recovery.
+- Added end-to-end queue and worker tests.

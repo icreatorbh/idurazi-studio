@@ -24,4 +24,4 @@ git checkout -b develop
 git push -u origin develop
 ```
 
-Replace `@OWNER` in `.github/CODEOWNERS` with your GitHub username before pushing.
+Replace `@OWNER` in `.github/icreatorbh` with your GitHub username before pushing.

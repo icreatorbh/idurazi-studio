@@ -1,6 +1,7 @@
 const { EventEmitter } = require('node:events');
 const { bootstrapRuntime } = require('../startup/RuntimeBootstrap');
 const { RuntimeLock, defaultRuntimePidFile } = require('./RuntimeLock');
+const { RuntimeControlServer, defaultRuntimeControlEndpoint } = require('./RuntimeControl');
 
 const RuntimeState = Object.freeze({
   IDLE: 'idle',
@@ -12,7 +13,7 @@ const RuntimeState = Object.freeze({
 });
 
 class RuntimeService extends EventEmitter {
-  constructor({ bootstrap = bootstrapRuntime, bootstrapOptions = {}, handlers = {}, singleInstance = true, pidFile, lockFactory } = {}) {
+  constructor({ bootstrap = bootstrapRuntime, bootstrapOptions = {}, handlers = {}, singleInstance = true, pidFile, lockFactory, control = true, controlEndpoint, controlFactory } = {}) {
     super();
     this.bootstrap = bootstrap;
     this.bootstrapOptions = bootstrapOptions;
@@ -26,6 +27,10 @@ class RuntimeService extends EventEmitter {
     this.pidFile = pidFile;
     this.lockFactory = lockFactory ?? ((filename) => new RuntimeLock(filename));
     this.lock = null;
+    this.control = control;
+    this.controlEndpoint = controlEndpoint;
+    this.controlFactory = controlFactory ?? ((options) => new RuntimeControlServer(options));
+    this.controlServer = null;
   }
 
   register(type, handler) {
@@ -51,11 +56,24 @@ class RuntimeService extends EventEmitter {
       if (this.singleInstance) {
         const filename = this.pidFile ?? defaultRuntimePidFile(this.bootstrapOptions);
         this.lock = this.lockFactory(filename);
-        this.lock.acquire({ service: 'idurazi-runtime' });
+        const endpoint = this.controlEndpoint ?? defaultRuntimeControlEndpoint(filename);
+        this.lock.acquire({ service: 'idurazi-runtime', controlEndpoint: endpoint });
       }
       this.runtime = this.bootstrap(this.bootstrapOptions);
       for (const [type, handler] of this.handlers) this.runtime.pool.register(type, handler);
       this.runtime.pool.start();
+      if (this.control && this.lock) {
+        this.controlServer = this.controlFactory({
+          endpoint: this.lock.metadata.controlEndpoint,
+          token: this.lock.metadata.token,
+          service: this
+        });
+        return Promise.resolve(this.controlServer.start()).then(() => {
+          this.failure = null;
+          this.#transition(RuntimeState.RUNNING);
+          return this.snapshot();
+        });
+      }
       this.failure = null;
       this.#transition(RuntimeState.RUNNING);
       return this.snapshot();
@@ -65,6 +83,10 @@ class RuntimeService extends EventEmitter {
       if (this.runtime) {
         try { await this.runtime.close(); } catch {}
         this.runtime = null;
+      }
+      if (this.controlServer) {
+        try { await this.controlServer.close(); } catch {}
+        this.controlServer = null;
       }
       this.lock?.release();
       this.lock = null;
@@ -86,6 +108,10 @@ class RuntimeService extends EventEmitter {
 
     this.#transition(RuntimeState.STOPPING);
     this.stopPromise = Promise.resolve().then(async () => {
+      if (this.controlServer) {
+        await this.controlServer.close();
+        this.controlServer = null;
+      }
       if (this.runtime) await this.runtime.close({ timeoutMs });
       this.runtime = null;
       this.lock?.release();
@@ -125,7 +151,8 @@ class RuntimeService extends EventEmitter {
       handlers: [...this.handlers.keys()].sort(),
       activeJobs: this.runtime?.pool.activeJobs ?? [],
       failure: this.failure ? normalizeError(this.failure) : null,
-      lock: this.lock?.status() ?? null
+      lock: this.lock?.status() ?? null,
+      control: this.controlServer?.status() ?? null
     };
   }
 

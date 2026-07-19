@@ -1,6 +1,6 @@
 {
   "name": "idurazi-studio",
-  "version": "3.9.0",
+  "version": "3.11.0",
   "private": true,
   "description": "Local-first editorial intelligence platform for documentary production",
   "workspaces": [
@@ -16,7 +16,10 @@
     "workflow:interview": "node apps/cli/index.js workflow interview-import",
     "runtime:status": "node apps/cli/index.js runtime status",
     "runtime:health": "node apps/cli/index.js runtime health",
-    "runtime:start": "node apps/cli/index.js runtime start"
+    "runtime:start": "node apps/cli/index.js runtime start --background",
+    "runtime:restart": "node apps/cli/index.js runtime restart",
+    "runtime:stop": "node apps/cli/index.js runtime stop",
+    "runtime:logs": "node apps/cli/index.js runtime logs"
   },
   "engines": {
     "node": ">=22.5"

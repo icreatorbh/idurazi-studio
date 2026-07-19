@@ -15,6 +15,8 @@ const { bootstrapRuntime } = require('./startup/RuntimeBootstrap');
 const { RuntimeService, RuntimeState } = require('./service/RuntimeService');
 const { installShutdownHooks } = require('./service/ShutdownHooks');
 const { RuntimeLock, RuntimeLockError, defaultProcessAlive, defaultRuntimePidFile } = require('./service/RuntimeLock');
+const { RuntimeControlServer, RuntimeControlClient, RuntimeControlError, defaultRuntimeControlEndpoint } = require('./service/RuntimeControl');
+const { RuntimeDaemonManager, RuntimeDaemonError, defaultRuntimeLogFiles, readLastLines, createDefaultRuntimeDaemon } = require('./service/RuntimeDaemon');
 
 function createRuntimeDatabase(filename = ':memory:') {
   return new RuntimeDatabase(filename).open().migrate();
@@ -48,6 +50,15 @@ module.exports = {
   RuntimeLockError,
   defaultProcessAlive,
   defaultRuntimePidFile,
+  RuntimeControlServer,
+  RuntimeControlClient,
+  RuntimeControlError,
+  defaultRuntimeControlEndpoint,
+  RuntimeDaemonManager,
+  RuntimeDaemonError,
+  defaultRuntimeLogFiles,
+  readLastLines,
+  createDefaultRuntimeDaemon,
   StructuredLogger,
   MemoryLogSink,
   LEVELS,
